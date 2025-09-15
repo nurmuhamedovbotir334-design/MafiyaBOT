@@ -63,21 +63,17 @@ public class MafiaBot extends TelegramLongPollingBot {
 
     private final Map<Long, String> pendingPurchases = new HashMap<>();
 
+    // faqat kechasi aktiv bo‘ladigan rollarni belgilab qo‘yamiz
     private static final Set<Role> NIGHT_ACTIVE_ROLES = Set.of(
             Role.DON,
             Role.MAFIA,
             Role.KILLER,
-            Role.DOCTOR,
             Role.SHERIF,
-            Role.GUARD,
+            Role.DOCTOR,
             Role.SLEEPWALKER,
-            Role.VAGRANT,
-            Role.WIZARD,
-            Role.SORCERER,
+            Role.GUARD,
             Role.BIG_BRO,
-            Role.LITTLE_BRO,
-            Role.WOLF,
-            Role.FOX
+            Role.LITTLE_BRO
     );
 
     String admin_id = "8123768337";
@@ -122,7 +118,8 @@ public class MafiaBot extends TelegramLongPollingBot {
             } else {
                 pendingPurchases.remove(chatId);
             }
-        }if (update.hasMessage()) {
+        }
+        if (update.hasMessage()) {
             Message message = update.getMessage();
             String chatType = message.getChat().getType();
 
@@ -278,9 +275,7 @@ public class MafiaBot extends TelegramLongPollingBot {
 
                         execute(groupMsg);
                     }
-                }
-
-                else if (text.startsWith("/grsend")) {
+                } else if (text.startsWith("/grsend")) {
                     String[] parts = text.split(" ");
                     if (parts.length < 2) {
                         execute(sendMessage);
@@ -332,9 +327,7 @@ public class MafiaBot extends TelegramLongPollingBot {
 
                     PremiumGroupManager.saveGroups(groups);
 
-                }
-
-                else if (text.equals("/extend@CamelotMafiaBot")) {
+                } else if (text.equals("/extend@CamelotMafiaBot")) {
                     GameLobby lobby = lobbyManager.getLobby(groupId);
 
                     if (lobby == null) {
@@ -381,9 +374,7 @@ public class MafiaBot extends TelegramLongPollingBot {
                         sendCurrentLobbyStatus(groupId);
                     }
 
-                }
-
-                else if (text.equals("/stop@CamelotMafiaBot")) {
+                } else if (text.equals("/stop@CamelotMafiaBot")) {
                     GameLobby lobby = lobbyManager.getLobby(groupId);
 
                     if (lobby == null) {
@@ -406,11 +397,20 @@ public class MafiaBot extends TelegramLongPollingBot {
                     lobbyManager.removeLobby(groupId);
 
 
+                    doctorHistory.clear();
+                    TimerManager.cancelTimerForGroup(groupId);
+                    voteCountMap.remove(groupId);
+                    yesVotesMap.remove(groupId);
+                    noVotesMap.remove(groupId);
+                    doctorLastTarget.remove(groupId);
+                    qoravulLastTarget.remove(groupId);
+                    doctorSelfUsed.remove(groupId);
+                    inactivityCounter.remove(groupId);
+                    pendingPurchases.remove(groupId);
+                    doctorSelfUsed.remove(groupId);
 
                     sendMessage.setText("O‘yin to‘xtatildi!");
-                }
-
-                else if (text.equals("/start@CamelotMafiaBot")) {
+                } else if (text.equals("/start@CamelotMafiaBot")) {
                     GameLobby lobby = lobbyManager.getLobby(groupId);
 
                     if (lobby == null) {
@@ -479,14 +479,14 @@ public class MafiaBot extends TelegramLongPollingBot {
         int messageId = callbackQuery.getMessage().getMessageId();
         String firstName = callbackQuery.getFrom().getFirstName();
 
-        if(data.startsWith("PAY_CONFIRM_")){
+        if (data.startsWith("PAY_CONFIRM_")) {
             Long userChatId = Long.parseLong(data.split("_")[2]);
             int days = paymentAmountMap.getOrDefault(userChatId, 7); // Callbackdan kelgan days ni olish
             updateProStatus(userChatId, days);
             sendMessage(userChatId, "🎉 To'lov tasdiqlandi! Sizda endi " + days + " kunlik Pro statusi faol!");
             sendMessage(Long.valueOf(admin_id), "✅ " + userChatId + " uchun to'lov tasdiqlandi (" + days + " kun).");
             return;
-        }else if (data.startsWith("PAY_REJECT_")) {
+        } else if (data.startsWith("PAY_REJECT_")) {
             Long userChatId = Long.parseLong(data.split("_")[2]);
             isWaitingForPaymentMap.remove(userChatId);
             paymentAmountMap.remove(userChatId);
@@ -564,8 +564,7 @@ public class MafiaBot extends TelegramLongPollingBot {
             pendingPurchases.remove(userId);
             return;
 
-        }
-        else if (data.startsWith("reject_")) {
+        } else if (data.startsWith("reject_")) {
             Long userId = Long.parseLong(data.split("_")[1]);
 
             // Userga xabar
@@ -801,7 +800,6 @@ public class MafiaBot extends TelegramLongPollingBot {
                                 .append(getUserName(id))
                                 .append(" - 1 💎\n");
                     }
-
 
 
                     // 🔄 Eski xabarni yangilaymiz
@@ -1115,7 +1113,7 @@ public class MafiaBot extends TelegramLongPollingBot {
             nightClosed.put(groupId, true);
             try {
                 sendNightActions(groupId);
-                calculateActive(groupId);
+//                calculateActive(groupId);
             } catch (TelegramApiException e) {
                 throw new RuntimeException(e);
             }
@@ -1132,72 +1130,81 @@ public class MafiaBot extends TelegramLongPollingBot {
         });
     }
 
-    public void calculateActive(long groupId) throws TelegramApiException {
-        List<Map<String, String>> dataList = callbackDataMap.getOrDefault(groupId, new ArrayList<>());
-        GameLobby lobby = lobbyManager.getLobby(groupId);
-        Set<Long> alivePlayers = lobby.getAlivePlayers();
 
-        Map<Long, Integer> groupInactivity = inactivityCounter.computeIfAbsent(groupId, k -> new HashMap<>());
+//    public void calculateActive(long groupId) throws TelegramApiException {
+//        List<Map<String, String>> dataList = callbackDataMap.getOrDefault(groupId, new ArrayList<>());
+//        GameLobby lobby = lobbyManager.getLobby(groupId);
+//        Set<Long> alivePlayers = new HashSet<>(lobby.getAlivePlayers()); // ✅ faqat tiriklarni olamiz
+//
+//        Map<Long, Integer> groupInactivity = inactivityCounter.computeIfAbsent(groupId, k -> new HashMap<>());
+//
+//        Set<Long> activePlayers = new HashSet<>();
+//        if (dataList != null) {
+//            for (Map<String, String> data : dataList) {
+//                Long playerId = Long.parseLong(data.get("playerId"));
+//                activePlayers.add(playerId);
+//            }
+//        }
+//
+//        // har bir tirik o‘yinchi uchun counterni init qilamiz
+//        for (Long playerId : alivePlayers) {
+//            groupInactivity.putIfAbsent(playerId, 0);
+//        }
+//
+//        // faqat tirik va tunda rolida harakat qiladiganlarni hisoblaymiz
+//        for (Long playerId : alivePlayers) {
+//            Role role = lobby.getPlayerRoles().get(playerId); // ✅ endi enumni to‘g‘ridan olamiz
+//
+//            if (role == null || !NIGHT_ACTIVE_ROLES.contains(role)) {
+//                continue; // tunda harakat qilmaydigan bo‘lsa - tashlab ketamiz
+//            }
+//
+//            if (activePlayers.contains(playerId)) {
+//                groupInactivity.put(playerId, 0); // aktiv bo‘ldi, nolga tushiramiz
+//            } else {
+//                int current = groupInactivity.getOrDefault(playerId, 0);
+//                groupInactivity.put(playerId, current + 1);
+//            }
+//        }
+//
+//        final int AFK_LIMIT = 3;
+//
+//        for (Map.Entry<Long, Integer> entry : groupInactivity.entrySet()) {
+//            Long playerId = entry.getKey();
+//            int count = entry.getValue();
+//
+//            // faqat tirik va tunda aktiv bo‘lishi kerak bo‘lgan rollar
+//            if (!alivePlayers.contains(playerId)) continue;
+//            Role role = lobby.getPlayerRoles().get(playerId);
+//            if (role == null || !NIGHT_ACTIVE_ROLES.contains(role)) continue;
+//
+//            if (count >= AFK_LIMIT) {
+//                String profileName = getCleanFirstName(playerId, groupId);
+//                String roleName = role.name(); // yoki uzbekcha nom olish uchun RoleDescription’dan
+//
+//                // o‘yinchiga xabar
+//                sendMessage(playerId, "❌ Siz " + AFK_LIMIT + " tunda ham hech qanday harakat qilmaganingiz uchun o‘yindan chiqarildingiz!");
+//
+//                // guruhga xabar
+//                String profileLink = "[" + profileName + " (" + roleName + ")](tg://user?id=" + playerId + ")";
+//                String groupMsg = "Aholidan kimdir " + profileLink + " o‘limidan oldin:\n" +
+//                        "«Men o‘yin paytida boshqa uxlamayma-a-a-a-a-an!» deb qichqirganini eshitgan.";
+//
+//                sendMessageWithMarkdown(groupId, groupMsg);
+//
+//                // o‘yinchidan chiqaramiz
+//                lobby.killPlayer(playerId);
+//            } else if (count > 0) {
+//                System.out.println("Player " + getCleanFirstName(playerId, groupId) +
+//                        " (" + role + ") ketma-ket " + count + " tun harakat qilmagan");
+//            } else {
+//                System.out.println("Player " + playerId + " (" + role + ") bu tun aktiv bo‘ldi");
+//            }
+//        }
+//
+//        callbackDataMap.remove(groupId); // tozalash
+//    }
 
-        Set<Long> activePlayers = new HashSet<>();
-        if (dataList != null) {
-            for (Map<String, String> data : dataList) {
-                Long playerId = Long.parseLong(data.get("playerId"));
-                activePlayers.add(playerId);
-            }
-        }
-
-        for (Long playerId : alivePlayers) {
-            groupInactivity.putIfAbsent(playerId, 0);
-        }
-
-        for (Long playerId : alivePlayers) {
-            Role role = Role.valueOf(lobby.getPlayerRole(playerId));
-            boolean isNightActor = (role != null) && NIGHT_ACTIVE_ROLES.contains(role);
-
-            if (!isNightActor) {
-
-                continue;
-            }
-
-            if (activePlayers.contains(playerId)) {
-                groupInactivity.put(playerId, 0);
-            } else {
-                int current = groupInactivity.getOrDefault(playerId, 0);
-                groupInactivity.put(playerId, current + 1);
-            }
-        }
-
-        final int AFK_LIMIT = 3;
-        for (Map.Entry<Long, Integer> entry : groupInactivity.entrySet()) {
-            Long playerId = entry.getKey();
-            int count = entry.getValue();
-
-            Role role = Role.valueOf(lobby.getPlayerRole(playerId));
-            if (role == null || !NIGHT_ACTIVE_ROLES.contains(role)) {
-                continue;
-            }
-
-            if (count >= AFK_LIMIT) {
-                String profileName = getCleanFirstName(playerId, groupId);
-
-                sendMessage(playerId, "❌ Siz " + AFK_LIMIT + " tunda ham hech qanday harakat qilmaganingiz uchun o‘yindan chiqarildingiz!");
-                String profileLink = "[" + profileName + "](tg://user?id=" + playerId + ")";
-                String groupMsg = "Aholidan kimdir " + profileLink + " o‘limidan oldin:\n" +
-                        "«Men o‘yin paytida boshqa uxlamayma-a-a-a-a-an!» deb qichqirganini eshitgan.";
-                sendMessageWithMarkdown(groupId, groupMsg);
-
-                lobby.killPlayer(playerId);
-            } else if (count > 0) {
-                System.out.println("Player " + getCleanFirstName(playerId, groupId) +
-                        " ketma-ket " + count + " tun harakat qilmagan");
-            } else {
-                System.out.println("Player " + playerId + " bu tun aktiv bo‘ldi");
-            }
-        }
-
-        callbackDataMap.remove(groupId);
-    }
 
     private void sendMessageWithMarkdown(long chatId, String text) throws TelegramApiException {
         SendMessage message = new SendMessage();
@@ -1511,8 +1518,7 @@ public class MafiaBot extends TelegramLongPollingBot {
             for (Long sergeantId : sergeants) {
                 sendMessage(sergeantId, sergeantMessage);
             }
-        }
-        else if ("don".equalsIgnoreCase(prefix)) {
+        } else if ("don".equalsIgnoreCase(prefix)) {
             sendMessage(groupId, "Don navbatdagi o‘ljasini tanladi!");
         } else if ("doc".equalsIgnoreCase(prefix)) {
             sendMessage(groupId, "Doktor tungi navbatchilikka ketdi!");
@@ -1571,7 +1577,7 @@ public class MafiaBot extends TelegramLongPollingBot {
         String text = "Aybdorlarni aniqlash va jazolash vaqti keldi\nOvoz berish uchun 45 sekund";
         InlineKeyboardButton voteButton = new InlineKeyboardButton();
         voteButton.setText("Ovoz berish");
-        voteButton.setUrl("https://t.me/"+getBotUsername());
+        voteButton.setUrl("https://t.me/" + getBotUsername());
 
         List<InlineKeyboardButton> row = new ArrayList<>();
         row.add(voteButton);
@@ -1894,7 +1900,7 @@ public class MafiaBot extends TelegramLongPollingBot {
         int yesCount = yesSet.size();
         int noCount = noSet.size();
 
-        InlineKeyboardButton yesBtn= new InlineKeyboardButton("👍 " + yesCount);
+        InlineKeyboardButton yesBtn = new InlineKeyboardButton("👍 " + yesCount);
         yesBtn.setCallbackData("vote_yes_" + targetId);
 
         InlineKeyboardButton noBtn = new InlineKeyboardButton("👎 " + noCount);
@@ -1939,18 +1945,35 @@ public class MafiaBot extends TelegramLongPollingBot {
 
         boolean gameEnded = false;
         List<Long> winners = new ArrayList<>();
-        if (aliveCitizens.isEmpty() && aliveMafias.isEmpty() && aliveSolo.size() == 1) {
-            winners.addAll(aliveSolo);
-            gameEnded = true;
-        }
-        else if (aliveMafias.isEmpty() && !aliveCitizens.isEmpty()) {
-            winners.addAll(aliveCitizens);
-            gameEnded = true;
-        }
-        else if (aliveCitizens.isEmpty() && !aliveMafias.isEmpty()) {
+
+        // 🔹 1 Don + 1 Citizen -> Don yutadi
+        if (aliveMafias.size() == 1 && aliveCitizens.size() == 1 && aliveSolo.isEmpty()) {
             winners.addAll(aliveMafias);
             gameEnded = true;
         }
+        // 🔹 1 Citizen + 1 Solo -> Citizen yutadi
+        else if (aliveCitizens.size() == 1 && aliveSolo.size() == 1 && aliveMafias.isEmpty()) {
+            winners.addAll(aliveCitizens);
+            gameEnded = true;
+        }
+        // 🔹 1 Don + 1 Solo -> Don yutadi
+        else if (aliveMafias.size() == 1 && aliveSolo.size() == 1 && aliveCitizens.isEmpty()) {
+            winners.addAll(aliveMafias);
+            gameEnded = true;
+        }
+        // 🔹 Oddiy holatlar
+        else if (aliveCitizens.isEmpty() && aliveMafias.isEmpty() && aliveSolo.size() == 1) {
+            winners.addAll(aliveSolo);
+            gameEnded = true;
+        } else if (aliveMafias.isEmpty() && !aliveCitizens.isEmpty()) {
+            winners.addAll(aliveCitizens);
+            gameEnded = true;
+        } else if (aliveCitizens.isEmpty() && !aliveMafias.isEmpty()) {
+            winners.addAll(aliveMafias);
+            gameEnded = true;
+        }
+
+        // Suicide tekshiruvi
         if (gameEnded) {
             for (Long playerId : allPlayers) {
                 if (lobby.isSuicided(playerId)) {
@@ -1973,8 +1996,7 @@ public class MafiaBot extends TelegramLongPollingBot {
             for (Long id : winners) {
                 sb.append("    ").append(index++).append(". ")
                         .append(getUserMention(id, groupId)).append(" - ")
-                        .append(lobby.getPlayerRole(id));
-                sb.append("\n");
+                        .append(lobby.getPlayerRole(id)).append("\n");
             }
 
             if (!losers.isEmpty()) {
@@ -1988,33 +2010,36 @@ public class MafiaBot extends TelegramLongPollingBot {
 
             long durationMillis = System.currentTimeMillis() - lobby.getStartTime();
             long minutes = durationMillis / 60000;
-            sb.append("\n⏳ O‘yin: ").append(minutes).append(" minut ").append("davom etdi");
+            sb.append("\n⏳ O‘yin: ").append(minutes).append(" minut davom etdi");
 
             sendMessage(lobby.getChatId(), sb.toString());
 
+            // Ballar taqsimoti
             for (Long id : winners) {
                 addBalance(id, 50, 0);
                 incrementWins(id);
                 incrementGames(id);
-
                 sendUserStatsWithButtons(id, "🥳 Siz yutdingiz!\n\n🎁 Sizga 50$ berildi!");
             }
 
             for (Long id : losers) {
                 addBalance(id, 10, 0);
                 incrementGames(id);
-
                 sendUserStatsWithButtons(id, "😢 Siz yutqazdingiz!\n\n💰 Sizga 10$ berildi!");
             }
 
+            // Lobby va ma’lumotlarni tozalash
             lobbyManager.removeLobby(groupId);
             doctorHistory.clear();
-            TimerManager.cancelTimerForGroup(groupId); // Timerlarni tozalash
-            voteCountMap.remove(groupId); // Agar mavjud bo'lsa
-            yesVotesMap.remove(groupId);  // Agar mavjud bo'lsa
-            noVotesMap.remove(groupId);   // Agar mavjud bo'lsa
-            doctorLastTarget.remove(groupId); // Agar mavjud bo'lsa
-            qoravulLastTarget.remove(groupId); // Agar mavjud bo'lsa
+            TimerManager.cancelTimerForGroup(groupId);
+            voteCountMap.remove(groupId);
+            yesVotesMap.remove(groupId);
+            noVotesMap.remove(groupId);
+            doctorLastTarget.remove(groupId);
+            qoravulLastTarget.remove(groupId);
+            doctorSelfUsed.remove(groupId);
+            inactivityCounter.remove(groupId);
+            pendingPurchases.remove(groupId);
             doctorSelfUsed.remove(groupId);
 
             return false;
@@ -2027,7 +2052,7 @@ public class MafiaBot extends TelegramLongPollingBot {
         if (role == null) return false;
         return switch (role) {
             case CITIZEN, SHERIF, DOCTOR, SLEEPWALKER, SERGEANT, SUICIDE,
-                 KING, GUARD, LEADER, VAGRANT -> true;
+                 KING, GUARD, LEADER -> true;
             default -> false;
         };
     }
@@ -2035,12 +2060,15 @@ public class MafiaBot extends TelegramLongPollingBot {
     private boolean isMafiaRole(Role role) {
         if (role == null) return false;
         return switch (role) {
-            case DON, LAWYER, BIG_BRO, LITTLE_BRO, MAFIA -> true;
+            case DON, BIG_BRO, LITTLE_BRO, MAFIA -> true;
             default -> false;
         };
     }
 
     public void startGame(GameLobby lobby, Long groupId) throws TelegramApiException {
+        // Eski hisoblarni tozalash
+        inactivityCounter.remove(groupId);
+
         Set<Long> players = lobby.getPlayers();
         Map<Long, Role> playerRoles = RoleAssigner.assignRoles(players);
         lobby.setPlayerRoles(playerRoles);
@@ -2054,25 +2082,25 @@ public class MafiaBot extends TelegramLongPollingBot {
             }
         }
 
-        // Guruh ma'lumotlarini olib kelamiz
+        // Guruh haqida ma’lumot
         Chat chat = execute(new GetChat(groupId.toString()));
         String groupLink;
         if (chat.getUserName() != null) {
-            // Public guruh
+            // public group
             groupLink = "https://t.me/" + chat.getUserName();
         } else {
-            // Private yoki supergroup uchun tg://resolve ishlatamiz
-            groupLink = "tg://resolve?domain=c/" + String.valueOf(groupId).substring(4);
+            // private yoki supergroup
+            groupLink = "https://t.me/c/" + String.valueOf(groupId).substring(4);
         }
 
-        // Har bir o‘yinchiga rolini yuboramiz
+        // Har bir o‘yinchiga rol yuboramiz
         for (Map.Entry<Long, Role> entry : playerRoles.entrySet()) {
             Long userId = entry.getKey();
             Role role = entry.getValue();
 
             String message = RoleDescription.roleMessages.get(role);
 
-            // Agar mafiya bo‘lsa, sheriklarini qo‘shib chiqamiz
+            // mafiya bo‘lsa sheriklari qo‘shiladi
             if (isMafiaRole(role)) {
                 StringBuilder mafiaMsg = new StringBuilder(message);
                 mafiaMsg.append("\n\n🤝 Sizning sheriklaringiz:\n");
@@ -2089,16 +2117,14 @@ public class MafiaBot extends TelegramLongPollingBot {
                 message = mafiaMsg.toString();
             }
 
-            // Guruhga qaytish tugmasi
-            InlineKeyboardButton backButton = new InlineKeyboardButton();
-            backButton.setText("⬅️ Guruhga qaytish");
-            backButton.setUrl(groupLink);
+            // 🔹 Rolni yuboramiz
+            InlineKeyboardButton backButton = InlineKeyboardButton.builder()
+                    .text("⬅️ Guruhga qaytish")
+                    .url(groupLink)
+                    .build();
 
-            List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
-            keyboard.add(List.of(backButton));
-
-            InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-            markup.setKeyboard(keyboard);
+            InlineKeyboardMarkup markup = InlineKeyboardMarkup.builder()
+                    .keyboard(List.of(List.of(backButton))).build();
 
             SendMessage sendMsg = SendMessage.builder()
                     .chatId(userId.toString())
@@ -2108,12 +2134,27 @@ public class MafiaBot extends TelegramLongPollingBot {
                     .build();
 
             execute(sendMsg);
+
+            // 🔹 Faqat "Guruhga qaytish" tugmasini yuboramiz
+            InlineKeyboardButton backBtn2 = InlineKeyboardButton.builder()
+                    .text("🔙 Guruhga qaytish")
+                    .url(groupLink)
+                    .build();
+
+            InlineKeyboardMarkup markup2 = InlineKeyboardMarkup.builder()
+                    .keyboard(List.of(List.of(backBtn2))).build();
+
+            SendMessage reply = SendMessage.builder()
+                    .chatId(userId.toString())
+                    .replyMarkup(markup2)
+                    .build();
+
+            execute(reply);
         }
 
-        // O‘yinni kechasi boshlash
+        // O‘yin kechasi boshlanadi
         night(groupId);
     }
-
 
     public void handleAction(CallbackQuery callbackQuery) throws TelegramApiException {
         String[] parts = callbackQuery.getData().split("_");
@@ -3366,12 +3407,14 @@ public class MafiaBot extends TelegramLongPollingBot {
     public String getBotToken() {
         return "8452121817:AAHxLYmTFul11HaHm43hJVdfE9TlUPf8LE4";
     }
-//
+
+    //
     @Override
     public String getBotUsername() {
         return "CamelotMafiaBot";
     }
-//
+
+    //
     public void sendAskSex(Long chatId) throws TelegramApiException {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(chatId.toString());
