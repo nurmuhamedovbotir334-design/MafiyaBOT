@@ -57,13 +57,14 @@ public class RoleAssigner {
         if (count >= 15) roles.add(Role.MAFIA);
         if (count >= 16) roles.add(Role.IMPOSTOR);
         if (count >= 17) {
-            roles.add(Role.WOLF);
             roles.add(Role.BIG_BRO);   // aka
             roles.add(Role.LITTLE_BRO); // uka ham birga qo‘shiladi
         }
         if (count >= 18) roles.add(Role.FOX);
         if (count >= 19) {
             roles.add(Role.MAFIA);
+            roles.add(Role.WOLF);
+
             // ❌ bu yerda LITTLE_BRO ni qo‘shmaymiz, chunki allaqachon aka bilan 17 da kiritilgan
         }
         if (count >= 20) roles.add(Role.SORCERER);
