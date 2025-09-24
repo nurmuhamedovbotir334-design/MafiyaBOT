@@ -208,6 +208,50 @@ public class Database {
             e.printStackTrace();
         }
     }
+    public static void decrementItemQuantity(long chatId, String itemName) {
+        String query = "UPDATE user_items SET quantity = quantity - 1 " +
+                "WHERE chat_id = ? AND item_name = ? AND is_active = TRUE AND quantity > 0";
+
+        try (Connection conn = DriverManager.getConnection(DB_URL, USER, PASSWORD);
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+
+            stmt.setLong(1, chatId);
+            stmt.setString(2, itemName);
+
+            int affectedRows = stmt.executeUpdate();
+            if (affectedRows > 0) {
+                System.out.println(itemName + " quantity 1 taga kamaytirildi.");
+            } else {
+                System.out.println(itemName + " kamaytirilmadi (topilmadi yoki 0).");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static Integer getActiveItemQuantity(long chatId, String itemName) {
+        String query = "SELECT quantity FROM user_items " +
+                "WHERE chat_id = ? AND item_name = ? AND is_active = TRUE AND quantity > 0 LIMIT 1";
+
+        try (Connection conn = DriverManager.getConnection(DB_URL, USER, PASSWORD);
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+
+            stmt.setLong(1, chatId);
+            stmt.setString(2, itemName);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("quantity");
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return null; // hech narsa topilmasa yoki shartlarga tushmasa
+    }
+
     public static int getDiamondCount(long chatId) {
         int diamondCount = 0;
         String query = "SELECT olmos FROM userss WHERE chat_id = ?";

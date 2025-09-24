@@ -9,11 +9,11 @@ public class TimerManager {
     static {
         DEFAULT_STAGES.put("Vote", 30);
         DEFAULT_STAGES.put("So'ngi sozni aytish vaqti", 60);
-        DEFAULT_STAGES.put("Tasdiqlash", 35);
-        DEFAULT_STAGES.put("Kun", 40);
+        DEFAULT_STAGES.put("Tasdiqlash", 25);
+        DEFAULT_STAGES.put("Kun", 25);
         DEFAULT_STAGES.put("Afsungar", 60);
-        DEFAULT_STAGES.put("Tun", 40);
-        DEFAULT_STAGES.put("Ro'yxatdan o'tish", 60);
+        DEFAULT_STAGES.put("Tun", 25);
+        DEFAULT_STAGES.put("Ro'yxatdan o'tish", 240);
     }
 
     // 🔹 Timerlar

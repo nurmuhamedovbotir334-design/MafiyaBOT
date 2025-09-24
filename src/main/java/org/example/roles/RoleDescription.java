@@ -57,15 +57,15 @@ public class RoleDescription {
                             "🌟 Yetakchi.\n" +
                             "🎯 Vazifangiz: agar kunduzda osilsangiz, sizga ovoz berganlar orasida nechta mafiyachi va nechta shaharlik borligini ochib berasiz."),
 
-//            Map.entry(Role.VAGRANT,
-//                    "Siz - *Darbadar*! \n" +
-//                            "👣 Tun kuzatuvchisi.\n" +
-//                            "🎯 Vazifangiz: jinoyatlarni yashirin kuzatish va shaharliklarga yordam berish."),
-//
-//            Map.entry(Role.LAWYER,
-//                    "Siz - *Advokat*! \n" +
-//                            "👔 Mafiyaning himoyachisi.\n" +
-//                            "🎯 Vazifangiz: mafiyani himoya qilish. Agar siz ularni tanlasangiz, Komissar ularni oddiy aholi deb ko‘radi."),
+            Map.entry(Role.VAGRANT,
+                    "Siz - *Darbadar*! \n" +
+                            "👣 Tun kuzatuvchisi.\n" +
+                            "🎯 Vazifangiz: jinoyatlarni yashirin kuzatish va shaharliklarga yordam berish."),
+
+            Map.entry(Role.LAWYER,
+                    "Siz - *Advokat*! \n" +
+                            "👔 Mafiyaning himoyachisi.\n" +
+                            "🎯 Vazifangiz: mafiyani himoya qilish. Agar siz ularni tanlasangiz, Komissar ularni oddiy aholi deb ko‘radi."),
 
             Map.entry(Role.BIG_BRO,
                     "Siz - *Aka*! \n" +
@@ -92,10 +92,10 @@ public class RoleDescription {
                             "🔪 Yakkaxon qotil.\n" +
                             "🎯 Vazifangiz: har tun kimnidir o‘ldirish va yakka holda g‘alaba qozonish."),
 
-//            Map.entry(Role.WIZARD,
-//                    "Siz - *Sehrgar*! \n" +
-//                            "🧙 Sehr kuchiga ega.\n" +
-//                            "🎯 Vazifangiz: sehringiz bilan o‘yinga ta’sir qilish."),
+            Map.entry(Role.WIZARD,
+                    "Siz - *Sehrgar*! \n" +
+                            "🧙 Sehr kuchiga ega.\n" +
+                            "🎯 Vazifangiz: sehringiz bilan o‘yinga ta’sir qilish."),
 
             Map.entry(Role.SORCERER,
                     "Siz - *Afsungar*! \n" +

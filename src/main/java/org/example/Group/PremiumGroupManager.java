@@ -38,33 +38,35 @@ public class PremiumGroupManager {
         return groups;
     }
 
-    // Guruhlarni DB ga saqlash (eski ma’lumotlarni tozalab, yangilarini yozadi)
-    public static void saveGroups(List<PremiumGroup> groups) {
-        String deleteQuery = "DELETE FROM premium_groups";
-        String insertQuery = "INSERT INTO premium_groups (group_id, group_name, admin_id, expire_date, invite_link, amount) VALUES (?, ?, ?, ?, ?, ?)";
+    public static void saveGroup(PremiumGroup group) {
+        String insertQuery = "INSERT INTO premium_groups (group_id, group_name, admin_id, expire_date, invite_link, amount) " +
+                "VALUES (?, ?, ?, ?, ?, ?) " +
+                "ON CONFLICT (group_id) DO UPDATE SET " +
+                "group_name = EXCLUDED.group_name, " +
+                "admin_id = EXCLUDED.admin_id, " +
+                "expire_date = EXCLUDED.expire_date, " +
+                "invite_link = EXCLUDED.invite_link, " +
+                "amount = premium_groups.amount + EXCLUDED.amount";
 
         try (Connection connection = DriverManager.getConnection(DB_URL, USER, PASSWORD);
-             Statement deleteStmt = connection.createStatement()) {
+             PreparedStatement stmt = connection.prepareStatement(insertQuery)) {
 
-            deleteStmt.executeUpdate(deleteQuery);
+            stmt.setLong(1, group.getGroupId());
+            stmt.setString(2, group.getGroupName());
+            stmt.setLong(3, group.getAdminId());
+            stmt.setDate(4, Date.valueOf(group.getExpireDate()));
+            stmt.setString(5, group.getInviteLink());
+            stmt.setInt(6, group.getAmount());
 
-            try (PreparedStatement insertStmt = connection.prepareStatement(insertQuery)) {
-                for (PremiumGroup group : groups) {
-                    insertStmt.setLong(1, group.getGroupId());
-                    insertStmt.setString(2, group.getGroupName());
-                    insertStmt.setLong(3, group.getAdminId());
-                    insertStmt.setDate(4, Date.valueOf(group.getExpireDate()));
-                    insertStmt.setString(5, group.getInviteLink());
-                    insertStmt.setInt(6, group.getAmount());
-                    insertStmt.addBatch();
-                }
-                insertStmt.executeBatch();
-            }
+            stmt.executeUpdate();
 
-            System.out.println("✅ Premium guruhlar DB ga saqlandi!");
+            System.out.println("✅ Premium guruh saqlandi yoki yangilandi!");
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
+
+
+
 }

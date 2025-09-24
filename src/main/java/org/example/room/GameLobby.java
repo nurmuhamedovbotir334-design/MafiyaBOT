@@ -5,6 +5,7 @@ import lombok.Setter;
 import org.example.roles.Role;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class GameLobby {
     @Getter
@@ -12,7 +13,7 @@ public class GameLobby {
     @Getter
     private final long gameId;
     @Getter
-    private final long startTime;
+    private long startTime;
 
     @Getter
     private final Set<Long> players = new HashSet<>();
@@ -28,7 +29,7 @@ public class GameLobby {
     public GameLobby(long chatId, long gameId) {
         this.chatId = chatId;
         this.gameId = gameId;
-        this.startTime = System.currentTimeMillis();
+
     }
 
     public void changePlayerRole(Long playerId, Role newRole) {
@@ -64,6 +65,9 @@ public class GameLobby {
     public void setPlayerRoles(Map<Long, Role> roles) {
         playerRoles.clear();
         playerRoles.putAll(roles);
+    }
+    public Role getPlayerRoleEnum(Long playerId) {
+        return playerRoles.get(playerId); // null bo‘lishi mumkin
     }
 
     public String getPlayerRole(Long playerId) {
@@ -104,11 +108,6 @@ public class GameLobby {
         wakeUpNextNight.add(playerId);
 
     }
-    public void skipVote(Long userId) {
-        if (!alivePlayers.contains(userId)) return; // faqat tirik o'yinchilar
-        skippedVotes.put(userId, true);
-        System.out.println("⚠️ O'yinchi " + userId + " ovoz berishni otkazdi.");
-    }
 
     public boolean isSleeping(Long playerId) {
         return sleepingPlayers.contains(playerId);
@@ -133,7 +132,7 @@ public class GameLobby {
     }
 
     public void clearProtections() {
-        protectedPlayers.clear(); // har tun boshida tozalanadi
+        protectedPlayers.clear();
     }
 
     @Getter
@@ -150,13 +149,28 @@ public class GameLobby {
 
     public void addSuicidedPlayer(Long playerId) {
         suicidedPlayers.add(playerId);
-        System.out.println("💀 " + playerId + " kunduzi o‘zini osdi (suicid).");
     }
     @Getter
     @Setter
     private String currentStage = "Ro'yxatdan o'tish";
 
     public void startGame() {
+        this.startTime = System.currentTimeMillis();
         this.currentStage = "Tun";
     }
+
+    public boolean isGameStarted() {
+        return !"Ro'yxatdan o'tish".equals(currentStage);
+    }
+
+
+    @Getter
+    @Setter
+    public Map<Long, Integer> inactivityCount = new ConcurrentHashMap<>();
+
+    // GameLobby ichida
+    private Map<Long, Boolean> playerNightActions = new ConcurrentHashMap<>();
+
+
+
 }
