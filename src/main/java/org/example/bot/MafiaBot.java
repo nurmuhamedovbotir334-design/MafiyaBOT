@@ -568,28 +568,6 @@ public class MafiaBot extends TelegramLongPollingBot {
                 inactivityCount.put(playerId, 0);
                 System.out.println("✅ Player " + playerId + " action qildi, hisob 0 qilindi 1 1.");
             }
-        if (data.startsWith("skip_vote_")) {
-            String[] parts = data.split("_");
-            long targetPlayerId = Long.parseLong(parts[2]);
-            long groupId = Long.parseLong(parts[3]);
-            String userMention = "<a href=\"tg://user?id=" + targetPlayerId + "\">" + getCleanFirstName(targetPlayerId, groupId) + "</a>";
-            String message = userMention + " ovoz bermaslikka qaror qildi!";
-
-            try {
-                execute(SendMessage.builder()
-                        .chatId(groupId)
-                        .text(message)
-                        .parseMode("HTML")
-                        .build());
-                execute(DeleteMessage.builder()
-                        .chatId(String.valueOf(chatId))
-                        .messageId(callbackQuery.getMessage().getMessageId())
-                        .build());
-            } catch (TelegramApiException e) {
-                e.printStackTrace();
-            }
-            return;
-        }
         if (data.equals("VIEW_ROLE")) {
             Long userId = callbackQuery.getFrom().getId();
             if (lobby != null) {
@@ -903,7 +881,7 @@ public class MafiaBot extends TelegramLongPollingBot {
                     int price = Integer.parseInt(parts[2]);
                     String currency = parts[3];
                     sendPaymentInstruction(chatId, price, day, currency);
-                }  else if (data.startsWith("w_vote_")) {
+                }  else if (data.startsWith("w_vote_") || data.startsWith("w_skipvote")) {
                     voteMessage(callbackQuery);
                 } else if (data.startsWith("w_kom_")) {
                     String[] parts = data.split("_");
@@ -919,7 +897,6 @@ public class MafiaBot extends TelegramLongPollingBot {
 
                     Long groupId = Long.parseLong(parts[3]);
                     if (!nightClosed.get(groupId)) {
-                        // 👇 to‘g‘ri parametrlarda yuboramiz
                         String prefix = parts[1];         // don, mafia, doc...
                         String action = parts[2];         // kill, heal...
                         String otherPlayerId = parts[5];  // target
@@ -1536,7 +1513,6 @@ public class MafiaBot extends TelegramLongPollingBot {
                 doctorNames.put(String.valueOf(doctorId), getCleanFirstName(doctorId, groupId));
                 continue;
             }
-
             if ("check".equals(action) && "kam".equals(prefix)) {
                 GameLobby lobby = lobbyManager.getLobby(groupId);
                 Long targetId = Long.valueOf(otherPlayerId);
@@ -1939,16 +1915,14 @@ public class MafiaBot extends TelegramLongPollingBot {
                     btn.setText(targetName);
                 }
 
-                btn.setCallbackData("w_vote_" + targetId + "_" + groupId + "_" + lobby.getGameId() + "_" + playerId);
+                btn.setCallbackData("w_vote_" + targetId + "_" + groupId + "_" + lobby.getGameId() + "_" + playerId + "_" + nightCountMap.get(groupId));
                 List<InlineKeyboardButton> rowBtn = new ArrayList<>();
                 rowBtn.add(btn);
                 buttons.add(rowBtn);
             }
-
-            // "Otkazib yuborish" tugmasini qo'shish
             InlineKeyboardButton skipButton = InlineKeyboardButton.builder()
                     .text("Otkazib yuborish")
-                    .callbackData("skip_vote_" + playerId + "_" + groupId + "_" + (playerRole != null ? playerRole.name() : "UNKNOWN"))
+                    .callbackData("w_skipvote_" + null + "_" + groupId + "_" + lobby.getGameId() + "_"+ playerId +"_" + nightCountMap.get(groupId))
                     .build();
             List<InlineKeyboardButton> skipRow = new ArrayList<>();
             skipRow.add(skipButton);
@@ -1994,7 +1968,6 @@ public class MafiaBot extends TelegramLongPollingBot {
 
         synchronized (lock) {
             if (!voteClosed.get(groupId)) {
-                Long targetId = Long.parseLong(parts[2]);
                 long playerId = Long.parseLong(parts[5]);
                 Set<Long> votedPlayers = votesPerDay.computeIfAbsent(groupId, k -> new HashSet<>());
                 if (votedPlayers.contains(playerId)) {
@@ -2006,13 +1979,35 @@ public class MafiaBot extends TelegramLongPollingBot {
                 String playerRole = String.valueOf(lobby.getPlayerRole(playerId));
 
                 String groupText;
-                if ("JANOB".equalsIgnoreCase(playerRole)) {
-                    groupText = "🎩 Janob - " + getUserMention(targetId, groupId) + " ga ovoz berdi.";
-                    addVote(groupId, String.valueOf(targetId));
-                    addVote(groupId, String.valueOf(targetId));
+
+                // ✅ Agar targetId mavjud bo‘lmasa (null yoki "null" bo‘lsa)
+                if (parts[2] == null || parts[2].equalsIgnoreCase("null")) {
+                    groupText = getUserMention(playerId, groupId) + " hech kimni tanlamaslikka qaror qildi.";
                 } else {
-                    groupText = getUserMention(playerId, groupId) + " - " + getUserMention(targetId, groupId) + " ga ovoz berdi.";
-                    addVote(groupId, String.valueOf(targetId));
+                    Long targetId = Long.parseLong(parts[2]);
+
+                    if ("JANOB".equalsIgnoreCase(playerRole)) {
+                        groupText = "🎩 Janob - " + getUserMention(targetId, groupId) + " ga ovoz berdi.";
+                        addVote(groupId, String.valueOf(targetId));
+                        addVote(groupId, String.valueOf(targetId));
+                    } else {
+                        groupText = getUserMention(playerId, groupId) + " - " + getUserMention(targetId, groupId) + " ga ovoz berdi.";
+                        addVote(groupId, String.valueOf(targetId));
+                    }
+
+                    String editedText = "Siz " + getCleanFirstName(targetId, groupId) + " ni tanladingiz.";
+                    EditMessageText editMessage = EditMessageText.builder()
+                            .chatId(String.valueOf(callbackQuery.getMessage().getChatId()))
+                            .messageId(callbackQuery.getMessage().getMessageId())
+                            .text(editedText)
+                            .parseMode("Markdown")
+                            .replyMarkup(backToGroupButton(groupId))
+                            .build();
+                    try {
+                        execute(editMessage);
+                    } catch (TelegramApiException e) {
+                        e.printStackTrace();
+                    }
                 }
                 SendMessage groupMessage = SendMessage.builder()
                         .chatId(String.valueOf(groupId))
@@ -2024,24 +2019,10 @@ public class MafiaBot extends TelegramLongPollingBot {
                 } catch (TelegramApiException e) {
                     e.printStackTrace();
                 }
-
-                // Foydalanuvchiga ovoz berilganini ko‘rsatish
-                String editedText = "Siz " + getCleanFirstName(targetId, groupId) + " ni tanladingiz.";
-                EditMessageText editMessage = EditMessageText.builder()
-                        .chatId(String.valueOf(callbackQuery.getMessage().getChatId()))
-                        .messageId(callbackQuery.getMessage().getMessageId())
-                        .text(editedText)
-                        .parseMode("Markdown")
-                        .replyMarkup(backToGroupButton(groupId))
-                        .build();
-                try {
-                    execute(editMessage);
-                } catch (TelegramApiException e) {
-                    e.printStackTrace();
-                }
             }
         }
     }
+
 
     public void accept(long groupId, String targetId) throws TelegramApiException {
         boolean gameOver = true;
