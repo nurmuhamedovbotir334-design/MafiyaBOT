@@ -427,7 +427,42 @@ public class MafiaBot extends TelegramLongPollingBot {
                             execute(sendMessage);
                             return;
                         }
+                    }else if (text.startsWith("/leave")) {
+                        if (lobby == null) {
+                            sendMessage.setText("❌ Siz hozirda hech qanday o'yinda emassiz.");
+                            execute(sendMessage);
+                            return;
+                        }
+
+                        Long playerId = message.getFrom().getId();
+                        String playerName = message.getFrom().getFirstName();
+                        String mention = "<a href=\"tg://user?id=" + playerId + "\">" + playerName + "</a>";
+
+                        boolean removed = lobby.leavePlayer(playerId, true); // leavePlayer metodini GameLobby ga qo‘shing
+
+                        if (!removed) {
+                            sendMessage.setText("❌ Siz allaqachon ro'yxatdan chiqib ketgansiz.");
+                            execute(sendMessage);
+                            return;
+                        }
+
+                        String messageText;
+
+                        if (!lobby.isGameStarted()) {
+                            // O'yin boshlanmagan
+                            messageText = "🏃‍♂️ O'yinchi " + mention + " ro'yxatdan chiqdi.";
+                        } else {
+                            // O'yin boshlangan
+                            Role role = lobby.getPlayerRoleEnum(playerId);
+                            String roleName = role != null ? role.getDisplayName() : "Roli noma'lum";
+                            messageText = "🏃‍♂️ O'yinchi " + mention + " o'yindan chiqdi, roli: " + roleName;
+                        }
+
+                        sendMessage.setText(messageText);
+                        sendMessage.setParseMode("HTML");
+                        execute(sendMessage);
                     }
+
 
                     if (!isAdmin(groupId, userId)) {
                         return;
@@ -3945,56 +3980,4 @@ public class MafiaBot extends TelegramLongPollingBot {
         try {
             execute(sendMessage);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void sendTariffOptions(Long chatId) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId.toString());
-        message.setText("Tarifdan birini tanlang:");
-
-        InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
-
-        InlineKeyboardButton tariffBtn = new InlineKeyboardButton();
-        tariffBtn.setText("30 kun — 45 ta 💎");
-        tariffBtn.setCallbackData("tariff_30_45");
-
-        InlineKeyboardButton backBtn = new InlineKeyboardButton();
-        backBtn.setText("⬅️ Orqaga");
-        backBtn.setCallbackData("back_to_pursache");
-
-        List<InlineKeyboardButton> row1 = new ArrayList<>();
-        row1.add(tariffBtn);
-
-        List<InlineKeyboardButton> row2 = new ArrayList<>();
-        row2.add(backBtn);
-
-        rowsInline.add(row1);
-        rowsInline.add(row2);
-
-        markupInline.setKeyboard(rowsInline);
-        message.setReplyMarkup(markupInline);
-
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public InlineKeyboardMarkup backToGroupButton(Long groupId) {
-        InlineKeyboardButton button = new InlineKeyboardButton();
-        button.setText("🔙 Guruhga qaytish");
-        button.setUrl("https://t.me/c/" + groupId.toString().substring(4));
-        List<InlineKeyboardButton> row = new ArrayList<>();
-        row.add(button);
-        List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
-        keyboard.add(row);
-
-        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-        markup.setKeyboard(keyboard);
-        return markup;
-    }
-}
+            e.printStackT
