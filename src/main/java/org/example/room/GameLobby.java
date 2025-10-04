@@ -171,6 +171,29 @@ public class GameLobby {
     // GameLobby ichida
     private Map<Long, Boolean> playerNightActions = new ConcurrentHashMap<>();
 
+    public boolean leavePlayer(Long playerId) {
+        if (!players.contains(playerId)) {
+            return false; // allaqachon chiqib ketgan
+        }
+
+        // Rolni olishdan oldin saqlaymiz
+        Role role = playerRoles.get(playerId);
+
+        // O'yinchini barcha ro'yxatlardan olib tashlaymiz
+        players.remove(playerId);
+        alivePlayers.remove(playerId);
+        playerRoles.remove(playerId);
+        sleepingPlayers.remove(playerId);
+        wakeUpNextNight.remove(playerId);
+        protectedPlayers.remove(playerId);
+        suicidedPlayers.remove(playerId);
+
+        return true;
+    }
+
+    public Role getAndRemovePlayerRole(Long playerId) {
+        return playerRoles.remove(playerId);
+    }
 
 
 }
