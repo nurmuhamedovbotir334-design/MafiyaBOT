@@ -33,7 +33,7 @@ public class RoleAssigner {
         roles.add(Role.DOCTOR);
         roles.add(Role.DON);
         if (count >= 5) roles.add(Role.CITIZEN);
-        if (count >= 6) roles.add(Role.SLEEPWALKER);
+        if (count >= 6) roles.add(Role.SUICIDE);
         if (count >= 7) roles.add(Role.MAFIA);
         if (count >= 8) roles.add(Role.CITIZEN);
         if (count >= 9) roles.add(Role.GUARD);
