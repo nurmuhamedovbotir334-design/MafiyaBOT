@@ -3836,29 +3836,29 @@ public class MafiaBot extends TelegramLongPollingBot {
     }
 
 
-//    @Override
-//    public String getBotToken() {
-//        return "8452121817:AAHxLYmTFul11HaHm43hJVdfE9TlUPf8LE4";
-//    }
-
-
-//
     @Override
     public String getBotToken() {
-        return "7943940440:AAFhofF96RYFMcTiWJg3Rs4p2q6LzLQvY14";
+        return "8452121817:AAHxLYmTFul11HaHm43hJVdfE9TlUPf8LE4";
     }
 
 
+//
 //    @Override
-//    public String getBotUsername() {
-//        return "CamelotMafiaBot";
+//    public String getBotToken() {
+//        return "7943940440:AAFhofF96RYFMcTiWJg3Rs4p2q6LzLQvY14";
 //    }
 
 
     @Override
     public String getBotUsername() {
-        return "true_maf_java_bot";
+        return "CamelotMafiaBot";
     }
+
+
+//    @Override
+//    public String getBotUsername() {
+//        return "true_maf_java_bot";
+//    }
 
     public void sendAskSex(Long chatId) throws TelegramApiException {
         SendMessage sendMessage = new SendMessage();
