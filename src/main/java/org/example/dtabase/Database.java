@@ -208,6 +208,7 @@ public class Database {
             e.printStackTrace();
         }
     }
+
     public static void decrementItemQuantity(long chatId, String itemName) {
         String query = "UPDATE user_items SET quantity = quantity - 1 " +
                 "WHERE chat_id = ? AND item_name = ? AND is_active = TRUE AND quantity > 0";
@@ -600,6 +601,31 @@ public class Database {
         return "Foydalanuvchi";
     }
 
+
+
+    public static int getGroupRegistrationTime(long groupId) throws SQLException {
+        String sql = "SELECT duration_seconds FROM group_stage_times WHERE group_id=? AND stage_name='Ro''yxatdan o''tish'";
+        try (Connection c = DriverManager.getConnection(DB_URL, USER, PASSWORD);
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setLong(1, groupId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt("duration_seconds");
+        }
+        return 60; // default
+    }
+
+    public static void setGroupRegistrationTime(long groupId, int time) throws SQLException {
+        String sql = "INSERT INTO group_stage_times(group_id, stage_name, duration_seconds) " +
+                "VALUES(?, 'Ro''yxatdan o''tish', ?) " +
+                "ON CONFLICT (group_id, stage_name) DO UPDATE SET " +
+                "duration_seconds = EXCLUDED.duration_seconds";
+        try (Connection c = DriverManager.getConnection(DB_URL, USER, PASSWORD);
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setLong(1, groupId);
+            ps.setInt(2, time);
+            ps.executeUpdate();
+        }
+    }
 
 
 
