@@ -21,7 +21,6 @@ public class TimerManager {
     private static final Map<Long, Long> currentDelays = new HashMap<>();
     private static final Map<Long, Runnable> callbacks = new HashMap<>();
 
-    // 🔹 DB ulanish ma’lumotlari
     public static final String DB_URL = "jdbc:postgresql://yamabiko.proxy.rlwy.net:55139/railway";
     public static final String USER = "postgres";
     public static final String PASSWORD = "mLiSAWrPKDwZQfojNppbvYQtHGQIsBWj";
@@ -37,8 +36,6 @@ public class TimerManager {
             System.out.println("❌ DB ga ulanishda xatolik!");
         }
     }
-
-    // ❌ Timer bekor qilish
     public static void cancelTimerForGroup(long groupId) {
         Timer timer = timers.get(groupId);
         if (timer != null) {
@@ -51,16 +48,13 @@ public class TimerManager {
             System.out.println("⚠️ Guruh uchun aktiv timer topilmadi: " + groupId);
         }
     }
-    // ✅ Guruh uchun vaqtni olish (DB → yo‘q bo‘lsa defaultdan insert qiladi)
     private int getStageDurationForGroup(long groupId, String stage) {
         try {
-            // Avval shu guruh uchun mavjudligini tekshiramiz
             try (PreparedStatement checkStmt = connection.prepareStatement(
                     "SELECT COUNT(*) AS cnt FROM group_stage_times WHERE group_id = ?")) {
                 checkStmt.setLong(1, groupId);
                 ResultSet rs = checkStmt.executeQuery();
                 if (rs.next() && rs.getInt("cnt") == 0) {
-                    // ❌ Agar groupId uchun hech narsa bo‘lmasa → barcha default stage-larni qo‘shamiz
                     try (PreparedStatement insertStmt = connection.prepareStatement(
                             "INSERT INTO group_stage_times (group_id, stage_name, duration_seconds) VALUES (?, ?, ?)")) {
                         for (Map.Entry<String, Integer> entry : DEFAULT_STAGES.entrySet()) {
@@ -74,8 +68,6 @@ public class TimerManager {
                     }
                 }
             }
-
-            // Endi so‘ralgan stage uchun vaqtni qaytaramiz
             try (PreparedStatement stmt = connection.prepareStatement(
                     "SELECT duration_seconds FROM group_stage_times WHERE group_id = ? AND stage_name = ?")) {
                 stmt.setLong(1, groupId);
@@ -113,8 +105,6 @@ public class TimerManager {
         currentDelays.put(groupId, (long) seconds * 1000);
         callbacks.put(groupId, onTimeEnd);
     }
-
-    // ⏫ Timer muddatini uzaytirish
     public void extendTimer(Long groupId, int multiplier) {
         Timer timer = timers.get(groupId);
         if (timer != null) {

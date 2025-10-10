@@ -23,6 +23,7 @@ public class GameLobby {
     private final Map<String, Long> playerNameToIdMap = new HashMap<>();
     private final Map<Long, Boolean> skippedVotes = new HashMap<>();
     private final Set<Long> suicidedPlayers = new HashSet<>();
+    private final Map<Long, Integer> playerNumbers = new HashMap<>();
 
 
 
@@ -50,9 +51,23 @@ public class GameLobby {
         if (added) {
             alivePlayers.add(userId);
             playerNameToIdMap.put(playerName, userId);
+            int number = playerNumbers.size() + 1;
+            playerNumbers.put(userId, number);
         }
         return added;
     }
+    public int getPlayerNumber(Long playerId) {
+        return playerNumbers.getOrDefault(playerId, -1);
+    }
+    public Long getPlayerIdByNumber(int number) {
+        for (Map.Entry<Long, Integer> entry : playerNumbers.entrySet()) {
+            if (entry.getValue() == number) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
 
     public Long getPlayerIdByName(String name) {
         return playerNameToIdMap.get(name);
